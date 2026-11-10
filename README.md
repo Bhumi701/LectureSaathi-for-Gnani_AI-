@@ -246,6 +246,7 @@ These files are excluded using `.gitignore`.
 ## 👩‍💻 Author
 
 **Bhumi Bhardwaj**
+---
 **Rudra Pratap Singh**
 
 ---
