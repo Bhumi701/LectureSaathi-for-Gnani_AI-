@@ -15,7 +15,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from openai import OpenAI
 from google import genai
+from google.genai import types
 import streamlit.components.v1 as components
+from docx import Document
 
 load_dotenv()
 
@@ -73,6 +75,7 @@ def call_groq_tutor(prompt, system_prompt="You are a helpful AI lecture assistan
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
+            max_tokens=800,
         )
         return response.choices[0].message.content.strip()
     except Exception as exc:
@@ -95,14 +98,21 @@ def get_gemini_client():
 def call_gemini_mindmap(prompt, system_prompt="You are an expert visual diagram designer."):
     client = get_gemini_client()
     if not client:
-        return None
+        return call_groq_tutor(prompt, system_prompt)
     try:
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=0.3,
+            )
         )
         return response.text.strip()
     except Exception as exc:
+        fallback = call_groq_tutor(prompt, system_prompt)
+        if fallback:
+            return fallback
         return f"Gemini API Error: {exc}"
 
 def st_mermaid(mermaid_code):
@@ -117,6 +127,20 @@ def st_mermaid(mermaid_code):
     </script>
     """
     components.html(html_code, height=550, scrolling=True)
+
+def create_docx(text_content):
+    """Helper function to generate Word document bytes from text."""
+    doc = Document()
+    doc.add_heading("LectureSathi AI Document", 0)
+    for paragraph in text_content.split("\n"):
+        if paragraph.strip():
+            doc.add_paragraph(paragraph)
+        else:
+            doc.add_paragraph()
+    doc_io = io.BytesIO()
+    doc.save(doc_io)
+    doc_io.seek(0)
+    return doc_io.getvalue()
 
 def api_error(response):
     try:
@@ -296,7 +320,7 @@ with st.sidebar:
     st.markdown("**Models used**")
     st.write("🎙️ Prisma v3.0 · Speech-to-text")
     st.write("🧠 Qwen 3.8 27B (Groq) · AI Tutor")
-    st.write("📊 Gemini 2.5 Flash · Graphical Mind Map")
+    st.write("📊 Google Gemini 2.5 Flash · Mind Map")
     st.write("🔊 Timbre v2.5 · Text-to-speech")
 
 st.subheader("1 · Upload a lecture")
@@ -351,12 +375,24 @@ tab1, tab2, tab3, tab4 = st.tabs(["Transcript", "Ask the lecture (AI Tutor)", "G
 with tab1:
     st.subheader("Lecture transcript")
     st.caption(f"{st.session_state['filename']} · Prisma v3.0 · {mode}")
-    st.download_button(
-        "Download transcript (.txt)",
-        transcript,
-        file_name="lecturesathi_transcript.txt",
-        mime="text/plain",
-    )
+    
+    col_dl1, col_dl2 = st.columns(2)
+    with col_dl1:
+        st.download_button(
+            "📥 Download transcript (.txt)",
+            transcript,
+            file_name="lecturesathi_transcript.txt",
+            mime="text/plain",
+        )
+    with col_dl2:
+        docx_bytes = create_docx(transcript)
+        st.download_button(
+            "📥 Download transcript (.docx)",
+            docx_bytes,
+            file_name="lecturesathi_transcript.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+
     for chunk in chunks:
         with st.expander(f"{chunk['start']} – {chunk['end']} · {chunk['language']}"):
             st.write(chunk["text"])
@@ -401,7 +437,9 @@ with tab3:
     st.subheader("📊 Visual Graphical Mind Map & Notes")
     st.caption("Generated as a rendered flowchart diagram using Google Gemini.")
     
-    if st.button("Generate Graphical Mind Map", type="primary", key="gen_mindmap_btn"):
+    gen_btn = st.button("Generate Graphical Mind Map", type="primary", key="gen_mindmap_btn")
+    
+    if gen_btn:
         with st.spinner("Generating visual mind map & structured notes with Google Gemini..."):
             prompt = f"""Analyze the following lecture transcript and create two things:
 1. A valid **Mermaid.js flowchart** code block starting with `graph TD` representing the core theme and branching sub-concepts visually. 
@@ -418,6 +456,7 @@ Transcript:
             result_output = call_gemini_mindmap(prompt, system_prompt="You are an expert visual diagram designer and study assistant.")
             if result_output:
                 st.session_state["mindmap_result"] = result_output
+                st.rerun()
             else:
                 st.error("Failed to generate mind map. Check your GEMINI_API_KEY.")
 
@@ -433,7 +472,6 @@ Transcript:
             
             st.markdown(intro_text)
             st.subheader("🗺️ Rendered Graphical Flowchart")
-            # Render visually as an image/diagram via HTML component!
             st_mermaid(mermaid_code)
             
             st.markdown("### 📝 Detailed Revision Notes")
@@ -441,12 +479,22 @@ Transcript:
         else:
             st.markdown(output_text)
             
-        st.download_button(
-            "Download mind map & notes",
-            output_text,
-            file_name="lecturesathi_mindmap.txt",
-            mime="text/plain",
-        )
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            st.download_button(
+                "📥 Download mind map & notes (.txt)",
+                output_text,
+                file_name="lecturesathi_mindmap.txt",
+                mime="text/plain",
+            )
+        with col_m2:
+            mindmap_docx_bytes = create_docx(output_text)
+            st.download_button(
+                "📥 Download mind map & notes (.docx)",
+                mindmap_docx_bytes,
+                file_name="lecturesathi_mindmap.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
     else:
         st.info("Click the button above to generate a graphical node-based mind map from your transcript.")
 
