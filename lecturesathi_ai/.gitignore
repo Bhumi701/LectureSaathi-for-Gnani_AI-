@@ -1,0 +1,41 @@
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Environment Variables
+.env
+
+# Streamlit Secrets
+.streamlit/secrets.toml
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# VS Code
+.vscode/
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary Files
+temp/
+tmp/
+
+# Streamlit Cache
+.streamlit/cache/
+
+# Build Files
+dist/
+build/
+
+# SQLite Databases
+*.db
+*.sqlite3
