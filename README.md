@@ -2,7 +2,7 @@
 
 > Transform lectures into transcripts, AI-powered explanations, visual mind maps, revision notes, and spoken summaries.
 
-LectureSathi AI is a multilingual learning assistant that helps students understand lectures more effectively. Upload an audio or video lecture, generate transcripts using speech recognition, interact with an AI tutor, create graphical mind maps, and convert notes back into speech.
+LectureSathi AI is a multilingual learning assistant that enables students understand lectures more effectively. Upload an audio or video lecture, generate transcripts using speech recognition, interact with an AI tutor, create graphical mind maps, and convert notes back into speech.
 
 ---
 
