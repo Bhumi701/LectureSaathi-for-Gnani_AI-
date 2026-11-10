@@ -113,24 +113,20 @@ AI Tutor Mind Map TTS
 
 ---
 
-## 📂 Project Structure
+## 📂 Repository Structure
 
 ```text
-lecturesathi_ai/
+LectureSaathi-for-Gnani_AI-/
 │
-├── app.py
-├── requirements.txt
-├── runtime.txt
-├── Procfile
 ├── README.md
 ├── .gitignore
-├── .env
 │
-├── .streamlit/
-│   ├── config.toml
-│   └── secrets.toml
-│
-└── __pycache__/
+└── lecturesathi_ai/
+    ├── app.py
+    ├── requirements.txt
+    ├── runtime.txt
+    ├── Procfile
+    └── .streamlit/
 ```
 
 ---
