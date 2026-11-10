@@ -81,7 +81,7 @@ def call_groq_tutor(prompt, system_prompt="You are a helpful AI lecture assistan
     except Exception as exc:
         return f"Groq Error: {exc}"
 
-# --- Google Gemini Client for Mind Map ---
+# --- Google Gemini Client for Mind Map & Detailed Analysis ---
 def get_gemini_client():
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     try:
@@ -95,7 +95,7 @@ def get_gemini_client():
         return None
     return genai.Client(api_key=api_key)
 
-def call_gemini_mindmap(prompt, system_prompt="You are an expert visual diagram designer."):
+def call_gemini_mindmap(prompt, system_prompt="You are an expert visual diagram designer and master educational summarizer."):
     client = get_gemini_client()
     if not client:
         return call_groq_tutor(prompt, system_prompt)
@@ -105,7 +105,7 @@ def call_gemini_mindmap(prompt, system_prompt="You are an expert visual diagram 
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
-                temperature=0.3,
+                temperature=0.2,
             )
         )
         return response.text.strip()
@@ -115,26 +115,43 @@ def call_gemini_mindmap(prompt, system_prompt="You are an expert visual diagram 
             return fallback
         return f"Gemini API Error: {exc}"
 
+
 def st_mermaid(mermaid_code):
-    """Renders Mermaid code as an interactive graphical diagram using HTML/JS component."""
+    """Renders Mermaid code as a large, readable, and clear graphical diagram."""
     html_code = f"""
-    <div class="mermaid" style="display: flex; justify-content: center; background: white; padding: 20px; border-radius: 10px;">
-        {mermaid_code}
+    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; width: 100%;">
+        <div class="mermaid" style="font-size: 16px; transform: scale(1.1); transform-origin: top center; display: inline-block;">
+            {mermaid_code}
+        </div>
     </div>
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-        mermaid.initialize({{ startOnLoad: true, theme: 'default' }});
+        mermaid.initialize({{ 
+            startOnLoad: true, 
+            theme: 'default', 
+            flowchart: {{ 
+                curve: 'basis',
+                nodeSpacing: 50,
+                rankSpacing: 60,
+                padding: 20
+            }} 
+        }});
     </script>
     """
-    components.html(html_code, height=550, scrolling=True)
+    components.html(html_code, height=750, scrolling=True)
+    
 
 def create_docx(text_content):
     """Helper function to generate Word document bytes from text."""
     doc = Document()
-    doc.add_heading("LectureSathi AI Document", 0)
+    doc.add_heading("LectureSathi AI — Visual Notes & Explanation", 0)
     for paragraph in text_content.split("\n"):
         if paragraph.strip():
-            doc.add_paragraph(paragraph)
+            if paragraph.startswith("#"):
+                clean_p = paragraph.lstrip("#").strip()
+                doc.add_heading(clean_p, level=2)
+            else:
+                doc.add_paragraph(paragraph)
         else:
             doc.add_paragraph()
     doc_io = io.BytesIO()
@@ -320,7 +337,7 @@ with st.sidebar:
     st.markdown("**Models used**")
     st.write("🎙️ Prisma v3.0 · Speech-to-text")
     st.write("🧠 Qwen 3.8 27B (Groq) · AI Tutor")
-    st.write("📊 Google Gemini 2.5 Flash · Mind Map")
+    st.write("📊 Google Gemini 2.5 Flash · Mind Map & Notes")
     st.write("🔊 Timbre v2.5 · Text-to-speech")
 
 st.subheader("1 · Upload a lecture")
@@ -434,26 +451,36 @@ Please provide:
                     st.error("Could not generate a response. Please verify your GROQ_API_KEY.")
 
 with tab3:
-    st.subheader("📊 Visual Graphical Mind Map & Notes")
-    st.caption("Generated as a rendered flowchart diagram using Google Gemini.")
+    st.subheader("📊 Visual Graphical Mind Map & Detailed Notes")
+    st.caption("Generated as a rendered graphical diagram & elaborated revision notes using Google Gemini.")
     
     gen_btn = st.button("Generate Graphical Mind Map", type="primary", key="gen_mindmap_btn")
     
     if gen_btn:
-        with st.spinner("Generating visual mind map & structured notes with Google Gemini..."):
-            prompt = f"""Analyze the following lecture transcript and create two things:
-1. A valid **Mermaid.js flowchart** code block starting with `graph TD` representing the core theme and branching sub-concepts visually. 
-   - Use clean alphanumeric node IDs (like A, B, C1, C2).
-   - Put node labels inside quotes, e.g., A["Core Topic"] --> B["Subtopic"].
-   - Do NOT include syntax errors or special characters unescaped. Wrap the code block strictly in ```mermaid ... ```.
-2. Structured revision notes below it with key definitions and quick takeaways.
+        with st.spinner("Analyzing lecture, building visual map & elaborating detailed notes..."):
+            prompt = f"""Analyze the following lecture transcript thoroughly. You MUST provide two distinct and comprehensive sections in your response:
 
-Transcript:
+1. FIRST SECTION (Visual Mind Map):
+- Create a valid **Mermaid.js flowchart** starting with `graph TD`.
+- Map the core subject at the top, branching into major sub-topics, key definitions, processes, and conclusions.
+- Use clean alphanumeric node IDs (e.g. A, B1, B2, C1, C2).
+- Always place node labels inside double quotes: A["Main Title"] --> B1["Sub Concept 1"].
+- Strictly wrap this Mermaid code block inside ```mermaid ... ``` markdown tags.
+
+2. SECOND SECTION (Detailed Explanations & Revision Notes):
+- Provide a deep, comprehensive breakdown elaborating on every branch, topic, and concept shown in the mind map above.
+- Include:
+  - **Core Summary / Theme Overview**
+  - **Key Definitions & Terminology Explained Simply**
+  - **Step-by-Step Logic / Workflows**
+  - **Important Exam Takeaways**
+
+Transcript to analyze:
 ---
 {transcript}
 ---
 """
-            result_output = call_gemini_mindmap(prompt, system_prompt="You are an expert visual diagram designer and study assistant.")
+            result_output = call_gemini_mindmap(prompt, system_prompt="You are a senior academic strategist and visual diagram designer.")
             if result_output:
                 st.session_state["mindmap_result"] = result_output
                 st.rerun()
@@ -470,12 +497,17 @@ Transcript:
             mermaid_code = mermaid_and_rest[0].strip()
             remaining_text = mermaid_and_rest[1] if len(mermaid_and_rest) > 1 else ""
             
-            st.markdown(intro_text)
-            st.subheader("🗺️ Rendered Graphical Flowchart")
+            if intro_text.strip():
+                st.markdown(intro_text)
+                
+            st.subheader("🗺️ Rendered Graphical Mind Map")
             st_mermaid(mermaid_code)
             
-            st.markdown("### 📝 Detailed Revision Notes")
-            st.markdown(remaining_text)
+            st.markdown("### 📝 Detailed Map Explanation & Revision Notes")
+            if remaining_text.strip():
+                st.markdown(remaining_text)
+            else:
+                st.info("Here are the core concepts analyzed from your lecture transcript.")
         else:
             st.markdown(output_text)
             
