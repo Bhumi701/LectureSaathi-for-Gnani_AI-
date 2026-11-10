@@ -246,8 +246,7 @@ These files are excluded using `.gitignore`.
 ## 👩‍💻 Author
 
 **Bhumi Bhardwaj**
-
-AI/ML Undergraduate • Researcher • AWS Certified
+**Rudra Pratap Singh**
 
 ---
 
